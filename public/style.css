@@ -7,19 +7,23 @@
 }
 
 :root {
-  --bg: #0f0f1a;
-  --surface: #1a1a2e;
-  --surface2: #222240;
+  --bg: #06060e;
+  --surface: rgba(18, 18, 40, 0.7);
+  --surface2: rgba(30, 30, 60, 0.6);
   --primary: #7c5cfc;
   --primary-hover: #6a48e6;
+  --primary-glow: rgba(124, 92, 252, 0.4);
   --accent: #00d4aa;
+  --accent-glow: rgba(0, 212, 170, 0.35);
   --danger: #ff4d6a;
+  --danger-glow: rgba(255, 77, 106, 0.3);
   --text: #e8e8f0;
-  --muted: #8888a8;
+  --muted: #7878a0;
   --bull: #00d4aa;
   --cow: #ffc44d;
-  --radius: 12px;
-  --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  --radius: 16px;
+  --shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+  --glass-border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 html {
@@ -34,48 +38,146 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow-x: hidden;
 }
+
+/* ── Particle Canvas ──────────────────────────────── */
+
+#particle-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* ── Animated background mesh ─────────────────────── */
+
+.bg-mesh {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.bg-mesh::before,
+.bg-mesh::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(120px);
+  opacity: 0.15;
+  animation: meshFloat 20s ease-in-out infinite;
+}
+
+.bg-mesh::before {
+  width: 600px;
+  height: 600px;
+  background: var(--primary);
+  top: -200px;
+  right: -100px;
+}
+
+.bg-mesh::after {
+  width: 500px;
+  height: 500px;
+  background: var(--accent);
+  bottom: -150px;
+  left: -100px;
+  animation-delay: -10s;
+  animation-direction: reverse;
+}
+
+@keyframes meshFloat {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(60px, -40px) scale(1.1); }
+  50% { transform: translate(-30px, 50px) scale(0.95); }
+  75% { transform: translate(40px, 30px) scale(1.05); }
+}
+
+/* ── App Container ────────────────────────────────── */
 
 #app {
   width: 100%;
   max-width: 720px;
   padding: 1rem;
+  position: relative;
+  z-index: 1;
 }
 
-/* ── Screens ───────────────────────────────────────── */
+/* ── Screens ──────────────────────────────────────── */
 
 .screen {
   display: none;
 }
 .screen.active {
   display: block;
-  animation: fadeIn 0.3s ease;
+  animation: screenIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: translateY(0); }
+@keyframes screenIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.97);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
 }
 
-/* ── Card ──────────────────────────────────────────── */
+/* ── Glassmorphism Card ───────────────────────────── */
 
 .card {
   background: var(--surface);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border-radius: var(--radius);
   padding: 2rem;
   box-shadow: var(--shadow);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: var(--glass-border);
+  position: relative;
+  overflow: hidden;
 }
 
+.card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+}
+
+/* ── Title ────────────────────────────────────────── */
+
 h1 {
-  font-size: 2rem;
-  font-weight: 800;
+  font-size: 2.4rem;
+  font-weight: 900;
   text-align: center;
-  background: linear-gradient(135deg, var(--primary), var(--accent));
+  background: linear-gradient(135deg, #7c5cfc, #00d4aa, #ffc44d, #ff4d6a);
+  background-size: 300% 300%;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  animation: gradientShift 6s ease infinite;
   margin-bottom: 0.25rem;
+  text-shadow: 0 0 40px var(--primary-glow);
+  position: relative;
+}
+
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
 }
 
 h2 {
@@ -109,7 +211,7 @@ h3 {
   text-align: center;
 }
 
-/* ── Inputs ────────────────────────────────────────── */
+/* ── Inputs ───────────────────────────────────────── */
 
 .input-group {
   margin-bottom: 1rem;
@@ -130,18 +232,20 @@ select {
   width: 100%;
   padding: 0.75rem 1rem;
   background: var(--surface2);
-  border: 2px solid transparent;
-  border-radius: 8px;
+  backdrop-filter: blur(10px);
+  border: 2px solid rgba(255,255,255,0.06);
+  border-radius: 10px;
   color: var(--text);
   font-size: 1rem;
   font-family: inherit;
   outline: none;
-  transition: border-color 0.2s;
+  transition: border-color 0.3s, box-shadow 0.3s;
 }
 
 input[type="text"]:focus,
 select:focus {
   border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-glow), inset 0 0 12px rgba(124,92,252,0.08);
 }
 
 input::placeholder {
@@ -149,11 +253,11 @@ input::placeholder {
 }
 
 select option {
-  background: var(--surface2);
+  background: #1a1a2e;
   color: var(--text);
 }
 
-/* ── Buttons ───────────────────────────────────────── */
+/* ── Buttons ──────────────────────────────────────── */
 
 .btn {
   display: inline-flex;
@@ -161,25 +265,41 @@ select option {
   justify-content: center;
   padding: 0.75rem 1.5rem;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   font-size: 1rem;
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.1), transparent);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.btn:hover::after {
+  opacity: 1;
 }
 
 .btn.primary {
   width: 100%;
-  background: var(--primary);
+  background: linear-gradient(135deg, var(--primary), #9b7dff);
   color: #fff;
+  box-shadow: 0 4px 20px var(--primary-glow);
 }
 .btn.primary:hover {
-  background: var(--primary-hover);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px var(--primary-glow);
 }
 .btn.primary:active {
-  transform: translateY(0);
+  transform: translateY(0) scale(0.98);
 }
 
 .btn.secondary {
@@ -187,26 +307,48 @@ select option {
   color: var(--text);
   width: 100%;
   margin-bottom: 1rem;
+  border: var(--glass-border);
 }
 .btn.secondary:hover {
-  background: #2d2d4e;
+  background: rgba(45, 45, 78, 0.8);
+  transform: translateY(-1px);
 }
 
 .btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
-  transform: none;
+  transform: none !important;
+  box-shadow: none;
 }
 
-/* ── Tabs ──────────────────────────────────────────── */
+/* ── Button ripple effect ─────────────────────────── */
+
+.btn-ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.25);
+  transform: scale(0);
+  animation: ripple 0.6s ease-out;
+  pointer-events: none;
+}
+
+@keyframes ripple {
+  to {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+/* ── Tabs ─────────────────────────────────────────── */
 
 .tab-bar {
   display: flex;
   gap: 0;
   margin-bottom: 1.25rem;
   background: var(--surface2);
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 4px;
+  border: var(--glass-border);
 }
 
 .tab {
@@ -214,18 +356,19 @@ select option {
   padding: 0.6rem;
   background: transparent;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   color: var(--muted);
   font-size: 0.9rem;
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .tab.active {
-  background: var(--primary);
+  background: linear-gradient(135deg, var(--primary), #9b7dff);
   color: #fff;
+  box-shadow: 0 2px 12px var(--primary-glow);
 }
 
 .tab-content {
@@ -233,26 +376,88 @@ select option {
 }
 .tab-content.active {
   display: block;
+  animation: fadeSlide 0.3s ease;
 }
 
-/* ── Room Code ─────────────────────────────────────── */
+@keyframes fadeSlide {
+  from { opacity: 0; transform: translateX(8px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* ── Room Code ────────────────────────────────────── */
 
 .room-code {
-  font-size: 2.5rem;
-  font-weight: 800;
+  font-size: 2.8rem;
+  font-weight: 900;
   text-align: center;
-  letter-spacing: 0.3em;
-  color: var(--accent);
+  letter-spacing: 0.35em;
   margin: 1rem 0;
   font-family: "Courier New", monospace;
+  position: relative;
+  color: var(--accent);
+  text-shadow: 0 0 30px var(--accent-glow), 0 0 60px rgba(0,212,170,0.15);
 }
 
-/* ── Loader ────────────────────────────────────────── */
+.room-code .char {
+  display: inline-block;
+  animation: charPop 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ── Digit Input Boxes ────────────────────────────── */
+
+.digit-input-group {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin: 1rem 0;
+}
+
+.digit-box {
+  width: 48px;
+  height: 56px;
+  background: var(--surface2);
+  border: 2px solid rgba(255,255,255,0.06);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  font-weight: 800;
+  font-family: "Courier New", monospace;
+  color: var(--text);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: text;
+}
+
+.digit-box.active {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-glow);
+  transform: scale(1.05);
+}
+
+.digit-box.filled {
+  border-color: var(--accent);
+  background: rgba(0, 212, 170, 0.08);
+  animation: digitFill 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes digitFill {
+  0% { transform: scale(0.8) rotateX(90deg); }
+  50% { transform: scale(1.1) rotateX(0deg); }
+  100% { transform: scale(1) rotateX(0deg); }
+}
+
+.digit-box.error-shake {
+  animation: headShake 0.5s ease;
+  border-color: var(--danger);
+}
+
+/* ── Loader ───────────────────────────────────────── */
 
 .loader {
   display: flex;
   justify-content: center;
-  gap: 6px;
+  gap: 8px;
   margin: 1.25rem 0 0.5rem;
 }
 
@@ -261,24 +466,39 @@ select option {
   height: 10px;
   border-radius: 50%;
   background: var(--primary);
-  animation: bounce 1.2s infinite;
+  animation: bounce 1.4s ease-in-out infinite;
+  box-shadow: 0 0 8px var(--primary-glow);
 }
-.dot:nth-child(2) { animation-delay: 0.15s; }
-.dot:nth-child(3) { animation-delay: 0.3s; }
+.dot:nth-child(2) { animation-delay: 0.16s; }
+.dot:nth-child(3) { animation-delay: 0.32s; }
 
 @keyframes bounce {
-  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
-  40% { transform: scale(1); opacity: 1; }
+  0%, 80%, 100% { transform: scale(0.5); opacity: 0.3; }
+  40% { transform: scale(1.2); opacity: 1; }
 }
 
-/* ── Game Layout ───────────────────────────────────── */
+/* ── Game Layout ──────────────────────────────────── */
 
 .game-layout {
   background: var(--surface);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border-radius: var(--radius);
   padding: 1.5rem;
   box-shadow: var(--shadow);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: var(--glass-border);
+  position: relative;
+  overflow: hidden;
+}
+
+.game-layout::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
 }
 
 .game-header {
@@ -301,34 +521,51 @@ select option {
   font-size: 1.1rem;
   letter-spacing: 0.2em;
   font-weight: 800;
+  text-shadow: 0 0 12px var(--accent-glow);
 }
+
+/* ── Turn Badge ───────────────────────────────────── */
 
 .turn-badge {
   display: inline-block;
-  padding: 0.35rem 1rem;
+  padding: 0.4rem 1.2rem;
   border-radius: 20px;
   font-size: 0.85rem;
   font-weight: 700;
   margin-top: 0.5rem;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .turn-badge.your-turn {
-  background: rgba(0, 212, 170, 0.15);
+  background: rgba(0, 212, 170, 0.12);
   color: var(--accent);
-  border: 1px solid rgba(0, 212, 170, 0.3);
+  border: 1px solid rgba(0, 212, 170, 0.25);
+  box-shadow: 0 0 20px rgba(0, 212, 170, 0.1);
+  animation: turnPulse 2s ease-in-out infinite;
 }
 
 .turn-badge.their-turn {
-  background: rgba(255, 77, 106, 0.12);
+  background: rgba(255, 77, 106, 0.1);
   color: var(--danger);
-  border: 1px solid rgba(255, 77, 106, 0.25);
+  border: 1px solid rgba(255, 77, 106, 0.2);
 }
+
+@keyframes turnPulse {
+  0%, 100% { box-shadow: 0 0 20px rgba(0, 212, 170, 0.1); }
+  50% { box-shadow: 0 0 30px rgba(0, 212, 170, 0.25); }
+}
+
+/* ── Game Columns ─────────────────────────────────── */
 
 .game-columns {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
   margin-bottom: 1.25rem;
+}
+
+.column h3 {
+  position: relative;
 }
 
 .guess-list {
@@ -347,9 +584,11 @@ select option {
   background: transparent;
 }
 .guess-list::-webkit-scrollbar-thumb {
-  background: var(--muted);
+  background: rgba(120,120,160,0.3);
   border-radius: 4px;
 }
+
+/* ── Guess Rows ───────────────────────────────────── */
 
 .guess-row {
   display: flex;
@@ -357,8 +596,44 @@ select option {
   gap: 8px;
   padding: 0.5rem 0.6rem;
   background: var(--surface2);
-  border-radius: 8px;
+  border-radius: 10px;
   font-size: 0.9rem;
+  border: 1px solid rgba(255,255,255,0.03);
+  transition: all 0.3s;
+  animation: guessSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.guess-row:hover {
+  background: rgba(40, 40, 75, 0.7);
+  border-color: rgba(255,255,255,0.06);
+}
+
+.guess-row.new-guess {
+  animation: guessReveal 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes guessSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes guessReveal {
+  0% {
+    opacity: 0;
+    transform: translateY(15px) scale(0.95);
+    filter: blur(4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
 }
 
 .guess-number {
@@ -377,20 +652,34 @@ select option {
 
 .result-badge {
   padding: 2px 8px;
-  border-radius: 4px;
+  border-radius: 6px;
   font-size: 0.75rem;
   font-weight: 700;
+  transition: all 0.3s;
 }
 
 .result-badge.numbers {
-  background: rgba(255, 196, 77, 0.15);
+  background: rgba(255, 196, 77, 0.12);
   color: var(--cow);
 }
 
 .result-badge.positions {
-  background: rgba(0, 212, 170, 0.15);
+  background: rgba(0, 212, 170, 0.12);
   color: var(--bull);
 }
+
+.result-badge.positions.perfect {
+  background: rgba(0, 212, 170, 0.25);
+  box-shadow: 0 0 12px rgba(0, 212, 170, 0.2);
+  animation: perfectPulse 1s ease-in-out infinite;
+}
+
+@keyframes perfectPulse {
+  0%, 100% { box-shadow: 0 0 12px rgba(0, 212, 170, 0.2); }
+  50% { box-shadow: 0 0 20px rgba(0, 212, 170, 0.4); }
+}
+
+/* ── Guess Input ──────────────────────────────────── */
 
 .input-row {
   display: flex;
@@ -430,18 +719,31 @@ select option {
   height: 10px;
   border-radius: 50%;
 }
-.bull-dot { background: var(--bull); }
-.cow-dot { background: var(--cow); }
+.bull-dot {
+  background: var(--bull);
+  box-shadow: 0 0 6px var(--accent-glow);
+}
+.cow-dot {
+  background: var(--cow);
+  box-shadow: 0 0 6px rgba(255,196,77,0.3);
+}
 
-/* ── Game Over ─────────────────────────────────────── */
+/* ── Game Over ────────────────────────────────────── */
 
 .gameover-card {
   text-align: center;
 }
 
 #gameover-icon {
-  font-size: 3.5rem;
+  font-size: 4rem;
   margin-bottom: 0.5rem;
+  animation: iconBounce 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes iconBounce {
+  0% { transform: scale(0) rotate(-20deg); opacity: 0; }
+  60% { transform: scale(1.3) rotate(5deg); }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
 }
 
 .secrets-reveal {
@@ -456,6 +758,10 @@ select option {
   flex-direction: column;
   align-items: center;
   gap: 0.3rem;
+  padding: 1rem 1.5rem;
+  background: var(--surface2);
+  border-radius: 12px;
+  border: var(--glass-border);
 }
 
 .secret-box .label {
@@ -472,6 +778,7 @@ select option {
   font-family: "Courier New", monospace;
   letter-spacing: 0.2em;
   color: var(--accent);
+  text-shadow: 0 0 15px var(--accent-glow);
 }
 
 .gameover-columns {
@@ -490,6 +797,18 @@ select option {
   margin-top: 0.5rem;
 }
 
+/* ── Confetti Canvas ──────────────────────────────── */
+
+#confetti-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 50;
+  pointer-events: none;
+}
+
 /* ── Toast ─────────────────────────────────────────── */
 
 .toast {
@@ -499,21 +818,55 @@ select option {
   transform: translateX(-50%) translateY(20px);
   background: var(--danger);
   color: #fff;
-  padding: 0.75rem 1.5rem;
-  border-radius: 8px;
+  padding: 0.8rem 1.5rem;
+  border-radius: 12px;
   font-weight: 600;
   font-size: 0.9rem;
   opacity: 0;
   pointer-events: none;
-  transition: all 0.3s ease;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   z-index: 100;
   max-width: 90vw;
   text-align: center;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+  backdrop-filter: blur(10px);
 }
 
 .toast.visible {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
+}
+
+/* ── Sound Toggle ─────────────────────────────────── */
+
+.sound-toggle {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 60;
+  background: var(--surface);
+  backdrop-filter: blur(15px);
+  border: var(--glass-border);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1.1rem;
+  color: var(--muted);
+  transition: all 0.3s;
+}
+
+.sound-toggle:hover {
+  color: var(--text);
+  transform: scale(1.1);
+}
+
+.sound-toggle.active {
+  color: var(--accent);
+  box-shadow: 0 0 15px var(--accent-glow);
 }
 
 /* ── Hidden ────────────────────────────────────────── */
@@ -522,7 +875,54 @@ select option {
   display: none !important;
 }
 
-/* ── Responsive ────────────────────────────────────── */
+/* ── Shake Animation ──────────────────────────────── */
+
+@keyframes headShake {
+  0% { transform: translateX(0); }
+  12.5% { transform: translateX(-6px) rotateY(-5deg); }
+  37.5% { transform: translateX(5px) rotateY(4deg); }
+  62.5% { transform: translateX(-3px) rotateY(-2deg); }
+  87.5% { transform: translateX(2px) rotateY(1deg); }
+  100% { transform: translateX(0); }
+}
+
+.shake {
+  animation: headShake 0.5s ease;
+}
+
+/* ── Win Glow effect ──────────────────────────────── */
+
+.win-glow {
+  animation: winGlow 2s ease-in-out infinite;
+}
+
+@keyframes winGlow {
+  0%, 100% { box-shadow: var(--shadow); }
+  50% { box-shadow: 0 0 40px var(--accent-glow), 0 0 80px rgba(0,212,170,0.1); }
+}
+
+/* ── Character pop for room code ──────────────────── */
+
+@keyframes charPop {
+  0% { opacity: 0; transform: scale(0) translateY(20px); }
+  60% { transform: scale(1.2) translateY(-3px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* ── Digit Rain ───────────────────────────────────── */
+
+#digit-rain-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.18;
+}
+
+/* ── Responsive ───────────────────────────────────── */
 
 @media (max-width: 500px) {
   .card {
@@ -530,7 +930,7 @@ select option {
   }
 
   h1 {
-    font-size: 1.6rem;
+    font-size: 1.8rem;
   }
 
   .room-code {
@@ -548,5 +948,21 @@ select option {
 
   .guess-number {
     font-size: 0.9rem;
+  }
+
+  .digit-box {
+    width: 40px;
+    height: 48px;
+    font-size: 1.2rem;
+  }
+
+  .secrets-reveal {
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .secret-box {
+    width: 100%;
   }
 }

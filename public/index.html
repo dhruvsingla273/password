@@ -7,6 +7,13 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <div class="bg-mesh"></div>
+  <canvas id="particle-canvas"></canvas>
+  <canvas id="digit-rain-canvas"></canvas>
+  <canvas id="confetti-canvas"></canvas>
+
+  <button class="sound-toggle" id="sound-toggle" title="Toggle sound effects">🔇</button>
+
   <div id="app">
 
     <!-- ── LOBBY ───────────────────────────────────────── -->
@@ -69,9 +76,8 @@
       <div class="card">
         <h2>Set Your Secret Number</h2>
         <p>Pick a <span id="digit-count-label"></span>-digit secret number for your opponent to guess.</p>
-        <div class="input-group">
-          <input id="input-secret" type="text" inputmode="numeric" autocomplete="off" placeholder="Your secret..." />
-        </div>
+        <div id="secret-digit-boxes" class="digit-input-group"></div>
+        <input id="input-secret" type="text" inputmode="numeric" autocomplete="off" style="position:absolute;opacity:0;pointer-events:none;height:0;" />
         <button id="btn-secret" class="btn primary">Lock In</button>
         <div id="secret-waiting" class="hidden">
           <div class="loader">
