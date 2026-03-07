@@ -625,6 +625,69 @@ select option {
   50% { opacity: 0.6; }
 }
 
+/* ── Turn Timer ──────────────────────────────────── */
+
+.turn-timer {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  width: 48px;
+  height: 48px;
+  margin-top: 0.6rem;
+}
+
+.timer-ring {
+  width: 48px;
+  height: 48px;
+  transform: rotate(-90deg);
+}
+
+.timer-track {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 2.5;
+}
+
+.timer-fill {
+  fill: none;
+  stroke: var(--green);
+  stroke-width: 2.5;
+  stroke-linecap: butt;
+  transition: stroke-dashoffset 0.9s linear, stroke 0.3s;
+}
+
+.timer-value {
+  position: absolute;
+  font-size: 0.85rem;
+  font-weight: 700;
+  font-family: var(--mono);
+  color: var(--text-bright);
+  letter-spacing: 0;
+}
+
+.turn-timer.timer-warning .timer-fill {
+  stroke: var(--amber);
+}
+
+.turn-timer.timer-warning .timer-value {
+  color: var(--amber);
+  animation: timerPulse 0.6s ease-in-out infinite;
+}
+
+.turn-timer.timer-danger .timer-fill {
+  stroke: var(--red);
+}
+
+.turn-timer.timer-danger .timer-value {
+  color: var(--red);
+}
+
+@keyframes timerPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+
 /* ── Game Columns ─────────────────────────────────── */
 
 .game-columns,

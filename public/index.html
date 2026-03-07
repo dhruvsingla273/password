@@ -52,6 +52,18 @@
               <option value="8">8 digits</option>
             </select>
           </div>
+          <div class="field">
+            <label for="input-turn-time">TURN TIMER</label>
+            <select id="input-turn-time">
+              <option value="0">No timer</option>
+              <option value="15">15 seconds</option>
+              <option value="30" selected>30 seconds</option>
+              <option value="45">45 seconds</option>
+              <option value="60">60 seconds</option>
+              <option value="90">90 seconds</option>
+              <option value="120">2 minutes</option>
+            </select>
+          </div>
           <button id="btn-create" class="btn primary">INITIALIZE ROOM</button>
         </div>
 
@@ -101,6 +113,13 @@
           <h2 id="game-title" class="match-title"></h2>
           <div class="your-secret-display">YOUR CODE: <span id="game-your-secret"></span></div>
           <div id="turn-indicator" class="turn-badge"></div>
+          <div id="turn-timer" class="turn-timer hidden">
+            <svg class="timer-ring" viewBox="0 0 36 36">
+              <circle class="timer-track" cx="18" cy="18" r="16" />
+              <circle class="timer-fill" id="timer-fill" cx="18" cy="18" r="16" />
+            </svg>
+            <span id="timer-value" class="timer-value"></span>
+          </div>
         </div>
 
         <div class="game-columns">

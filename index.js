@@ -34,6 +34,50 @@ function generateRoomCode() {
   return crypto.randomBytes(3).toString("hex").toUpperCase();
 }
 
+function clearTurnTimer(room) {
+  if (room.turnTimer) {
+    clearInterval(room.turnTimer);
+    room.turnTimer = null;
+  }
+}
+
+function startTurnTimer(room) {
+  clearTurnTimer(room);
+  if (!room.turnTime || room.turnTime <= 0) return;
+
+  room.timeLeft = room.turnTime;
+  io.to(room.code).emit("timer-tick", { timeLeft: room.timeLeft, turnTime: room.turnTime });
+
+  room.turnTimer = setInterval(() => {
+    room.timeLeft--;
+    io.to(room.code).emit("timer-tick", { timeLeft: room.timeLeft, turnTime: room.turnTime });
+
+    if (room.timeLeft <= 0) {
+      clearTurnTimer(room);
+      if (room.phase !== "playing" || room.players.length < 2) return;
+
+      const opponent = room.players.find((p) => p.id !== room.turn);
+      if (!opponent) return;
+
+      room.turn = opponent.id;
+
+      room.players.forEach((p) => {
+        const myGuesses = room.guesses[p.id];
+        const opponentGuesses = room.guesses[room.players.find((o) => o.id !== p.id).id];
+
+        io.to(p.id).emit("turn-skipped", {
+          isYourTurn: p.id === room.turn,
+          yourGuesses: myGuesses,
+          opponentGuesses: opponentGuesses,
+          skippedPlayerId: room.players.find((pl) => pl.id !== opponent.id).id,
+        });
+      });
+
+      startTurnTimer(room);
+    }
+  }, 1000);
+}
+
 function evaluateGuess(secret, guess) {
   const len = secret.length;
   let positionsCorrect = 0;
@@ -62,29 +106,35 @@ function evaluateGuess(secret, guess) {
 io.on("connection", (socket) => {
   let currentRoom = null;
 
-  socket.on("create-room", ({ name, digitLength }) => {
+  socket.on("create-room", ({ name, digitLength, turnTime }) => {
     const len = parseInt(digitLength, 10);
     if (isNaN(len) || len < 2 || len > 8) {
       socket.emit("error-msg", "Digit length must be between 2 and 8.");
       return;
     }
 
+    const tt = parseInt(turnTime, 10);
+    const validTurnTime = isNaN(tt) || tt < 0 ? 0 : Math.min(tt, 300);
+
     const code = generateRoomCode();
     const room = {
       code,
       digitLength: len,
+      turnTime: validTurnTime,
       players: [{ id: socket.id, name, secret: null, ready: false }],
       guesses: { [socket.id]: [] },
       turn: null,
-      phase: "waiting", // waiting | setting | playing | finished
+      phase: "waiting",
       winner: null,
+      turnTimer: null,
+      timeLeft: 0,
     };
 
     rooms.set(code, room);
     socket.join(code);
     currentRoom = code;
 
-    socket.emit("room-created", { code, digitLength: len, playerName: name });
+    socket.emit("room-created", { code, digitLength: len, turnTime: validTurnTime, playerName: name });
   });
 
   socket.on("join-room", ({ code, name }) => {
@@ -149,8 +199,11 @@ io.on("connection", (socket) => {
           digitLength: room.digitLength,
           isYourTurn: p.id === room.turn,
           yourSecret: p.secret,
+          turnTime: room.turnTime,
         });
       });
+
+      startTurnTimer(room);
     } else {
       socket.emit("waiting-for-opponent-secret");
     }
@@ -180,6 +233,7 @@ io.on("connection", (socket) => {
     if (result.positionsCorrect === room.digitLength) {
       room.phase = "finished";
       room.winner = socket.id;
+      clearTurnTimer(room);
 
       const guesser = room.players.find((p) => p.id === socket.id);
 
@@ -214,6 +268,8 @@ io.on("connection", (socket) => {
         opponentGuesses: opponentGuesses,
       });
     });
+
+    startTurnTimer(room);
   });
 
   socket.on("play-again", () => {
@@ -227,6 +283,7 @@ io.on("connection", (socket) => {
     player.wantsRematch = true;
 
     if (room.players.every((p) => p.wantsRematch)) {
+      clearTurnTimer(room);
       room.phase = "setting";
       room.winner = null;
       room.turn = null;
@@ -251,6 +308,8 @@ io.on("connection", (socket) => {
     if (!currentRoom) return;
     const room = rooms.get(currentRoom);
     if (!room) return;
+
+    clearTurnTimer(room);
 
     const player = room.players.find((p) => p.id === socket.id);
     const playerName = player ? player.name : "Opponent";

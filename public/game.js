@@ -11,6 +11,7 @@ const screens = {
 };
 
 let currentDigitLength = 4;
+let currentTurnTime = 0;
 
 // ══════════════════════════════════════════════════════════════════════════════
 //  CURSOR SPOTLIGHT
@@ -293,7 +294,7 @@ $$(".tab").forEach(tab => {
 $("#btn-create").addEventListener("click", () => {
   const name = $("#input-name").value.trim();
   if (!name) { showToast("Agent ID required."); sfxError(); return; }
-  socket.emit("create-room", { name, digitLength: $("#input-digits").value });
+  socket.emit("create-room", { name, digitLength: $("#input-digits").value, turnTime: $("#input-turn-time").value });
   sfxClick();
 });
 
@@ -310,8 +311,9 @@ $("#btn-join").addEventListener("click", () => {
 
 // ── Room Created ────────────────────────────────────────────────────────────
 
-socket.on("room-created", ({ code, digitLength }) => {
+socket.on("room-created", ({ code, digitLength, turnTime }) => {
   currentDigitLength = digitLength;
+  currentTurnTime = turnTime || 0;
   animateRoomCode(code);
   showScreen("waiting");
   sfxSuccess();
@@ -375,8 +377,9 @@ socket.on("waiting-for-opponent-secret", () => {});
 
 // ── Game Playing ────────────────────────────────────────────────────────────
 
-socket.on("game-playing", ({ yourName, opponentName, digitLength, isYourTurn, yourSecret }) => {
+socket.on("game-playing", ({ yourName, opponentName, digitLength, isYourTurn, yourSecret, turnTime }) => {
   currentDigitLength = digitLength;
+  currentTurnTime = turnTime || 0;
   $("#game-title").textContent = `${yourName} vs ${opponentName}`;
   $("#game-your-secret").textContent = yourSecret;
   $("#input-guess").maxLength = digitLength;
@@ -384,6 +387,13 @@ socket.on("game-playing", ({ yourName, opponentName, digitLength, isYourTurn, yo
   $("#input-guess").value = "";
   $("#your-guesses").innerHTML = "";
   $("#opponent-guesses").innerHTML = "";
+
+  if (currentTurnTime > 0) {
+    $("#turn-timer").classList.remove("hidden");
+  } else {
+    $("#turn-timer").classList.add("hidden");
+  }
+
   updateTurn(isYourTurn);
   showScreen("game");
   if (isYourTurn) $("#input-guess").focus();
@@ -436,6 +446,47 @@ socket.on("guess-result", ({ isYourTurn, yourGuesses, opponentGuesses }) => {
   if (isYourTurn) sfxTurn();
 });
 
+// ── Timer ────────────────────────────────────────────────────────────────────
+
+const TIMER_CIRCUMFERENCE = 2 * Math.PI * 16;
+
+function updateTimerDisplay(timeLeft, turnTime) {
+  if (!turnTime || turnTime <= 0) return;
+  const el = $("#timer-value");
+  const fill = $("#timer-fill");
+  el.textContent = timeLeft;
+
+  const fraction = timeLeft / turnTime;
+  fill.style.strokeDasharray = `${TIMER_CIRCUMFERENCE}`;
+  fill.style.strokeDashoffset = `${TIMER_CIRCUMFERENCE * (1 - fraction)}`;
+
+  const timerEl = $("#turn-timer");
+  timerEl.classList.toggle("timer-warning", timeLeft <= 5 && timeLeft > 0);
+  timerEl.classList.toggle("timer-danger", timeLeft <= 0);
+
+  if (timeLeft <= 5 && timeLeft > 0) {
+    playTone(800 + (5 - timeLeft) * 80, 0.05, "square", 0.03);
+  }
+}
+
+socket.on("timer-tick", ({ timeLeft, turnTime }) => {
+  updateTimerDisplay(timeLeft, turnTime);
+});
+
+socket.on("turn-skipped", ({ isYourTurn, yourGuesses, opponentGuesses, skippedPlayerId }) => {
+  renderGuesses($("#your-guesses"), yourGuesses, false);
+  renderGuesses($("#opponent-guesses"), opponentGuesses, false);
+  updateTurn(isYourTurn);
+
+  if (skippedPlayerId === socket.id) {
+    showToast("Time's up! Turn skipped.");
+    sfxError();
+  } else {
+    showToast("Opponent ran out of time!");
+    sfxTurn();
+  }
+});
+
 // ── Game Over ───────────────────────────────────────────────────────────────
 
 socket.on("game-over", ({ winnerName, youWon, yourSecret, opponentSecret, yourGuesses, opponentGuesses }) => {
@@ -480,6 +531,8 @@ socket.on("game-over", ({ winnerName, youWon, yourSecret, opponentSecret, yourGu
   tv.classList.add("revealed");
   setTimeout(() => { yv.classList.remove("revealed"); tv.classList.remove("revealed"); }, 600);
 
+  $("#turn-timer").classList.add("hidden");
+
   renderGuesses($("#go-your-guesses"), yourGuesses, false);
   renderGuesses($("#go-opponent-guesses"), opponentGuesses, false);
 
@@ -506,6 +559,7 @@ socket.on("waiting-for-rematch", () => {
 
 socket.on("opponent-left", ({ name }) => {
   showToast(`${name} disconnected.`);
+  $("#turn-timer").classList.add("hidden");
   $("#input-secret").disabled = false;
   $("#input-guess").disabled = false;
   $("#btn-guess").disabled = false;
