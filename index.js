@@ -238,6 +238,10 @@ io.on("connection", (socket) => {
       socket.emit("error-msg", `Secret must be exactly ${room.digitLength} digits (0-9).`);
       return;
     }
+    if (new Set(s).size !== s.length) {
+      socket.emit("error-msg", "No repeated digits allowed.");
+      return;
+    }
 
     player.secret = s;
     player.ready = true;
@@ -246,7 +250,8 @@ io.on("connection", (socket) => {
 
     if (room.players.every((p) => p.ready)) {
       room.phase = "playing";
-      room.turn = room.players[0].id;
+      const starter = room.players[Math.floor(Math.random() * room.players.length)];
+      room.turn = starter.id;
 
       room.players.forEach((p) => {
         const opponent = room.players.find((o) => o.id !== p.id);
@@ -279,6 +284,10 @@ io.on("connection", (socket) => {
     const g = guess.trim();
     if (g.length !== room.digitLength || !/^\d+$/.test(g)) {
       socket.emit("error-msg", `Guess must be exactly ${room.digitLength} digits.`);
+      return;
+    }
+    if (new Set(g).size !== g.length) {
+      socket.emit("error-msg", "No repeated digits allowed.");
       return;
     }
 

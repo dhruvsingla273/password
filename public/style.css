@@ -1037,6 +1037,8 @@ select option {
 .gameover-columns { margin: 1rem 0; text-align: left; }
 .gameover-columns .guess-list { max-height: 200px; }
 
+.gameover-panel .notes-section { text-align: left; margin-bottom: 1rem; }
+
 #btn-rematch { margin-top: 0.5rem; }
 
 /* ── Red Flash Overlay (loss) ─────────────────────── */

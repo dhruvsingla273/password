@@ -34,9 +34,12 @@ function loadNotes() {
   const key = getNotesKey();
   if (!key) return;
   try {
-    $("#notes-textarea").value = localStorage.getItem(key) || "";
+    const saved = localStorage.getItem(key) || "";
+    $("#notes-textarea").value = saved;
+    $("#go-notes-textarea").value = saved;
   } catch (_) {
     $("#notes-textarea").value = "";
+    $("#go-notes-textarea").value = "";
   }
 }
 
@@ -46,19 +49,36 @@ function clearNotesStorage() {
   try { localStorage.removeItem(key); } catch (_) {}
 }
 
-(function initNotes() {
-  const toggle = $("#notes-toggle");
-  const body = $("#notes-body");
-  const textarea = $("#notes-textarea");
+function syncNotes(source, target) {
+  target.value = source.value;
+  saveNotes();
+}
 
-  toggle.addEventListener("click", () => {
-    const isOpen = body.classList.toggle("open");
-    toggle.classList.toggle("active", isOpen);
-    if (isOpen) textarea.focus();
+(function initNotes() {
+  const gameToggle = $("#notes-toggle");
+  const gameBody = $("#notes-body");
+  const gameTextarea = $("#notes-textarea");
+
+  const goToggle = $("#go-notes-toggle");
+  const goBody = $("#go-notes-body");
+  const goTextarea = $("#go-notes-textarea");
+
+  gameToggle.addEventListener("click", () => {
+    const isOpen = gameBody.classList.toggle("open");
+    gameToggle.classList.toggle("active", isOpen);
+    if (isOpen) gameTextarea.focus();
     sfxClick();
   });
 
-  textarea.addEventListener("input", saveNotes);
+  goToggle.addEventListener("click", () => {
+    const isOpen = goBody.classList.toggle("open");
+    goToggle.classList.toggle("active", isOpen);
+    if (isOpen) goTextarea.focus();
+    sfxClick();
+  });
+
+  gameTextarea.addEventListener("input", () => syncNotes(gameTextarea, goTextarea));
+  goTextarea.addEventListener("input", () => syncNotes(goTextarea, gameTextarea));
 })();
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -244,6 +264,12 @@ document.addEventListener("keydown", (e) => {
   if ($("#input-secret").disabled) return;
 
   if (/^\d$/.test(e.key)) {
+    if (secretDigitValues.includes(e.key)) {
+      showToast(`Digit ${e.key} already used — no repeats allowed.`);
+      sfxError();
+      e.preventDefault();
+      return;
+    }
     const idx = getActiveDigitIndex();
     if (idx < currentDigitLength) {
       secretDigitValues[idx] = e.key;
@@ -399,10 +425,23 @@ socket.on("game-start-set-secret", ({ digitLength }) => {
 
 // ── Lock Secret ─────────────────────────────────────────────────────────────
 
+function hasDuplicateDigits(str) {
+  return new Set(str).size !== str.length;
+}
+
 $("#btn-secret").addEventListener("click", () => {
   const secret = $("#input-secret").value.trim();
   if (secret.length !== currentDigitLength || !/^\d+$/.test(secret)) {
     showToast(`Enter exactly ${currentDigitLength} digits.`);
+    sfxError();
+    $$("#secret-digit-boxes .digit-box").forEach(b => {
+      b.classList.add("error-shake");
+      setTimeout(() => b.classList.remove("error-shake"), 400);
+    });
+    return;
+  }
+  if (hasDuplicateDigits(secret)) {
+    showToast("No repeated digits allowed.");
     sfxError();
     $$("#secret-digit-boxes .digit-box").forEach(b => {
       b.classList.add("error-shake");
@@ -477,6 +516,13 @@ function submitGuess() {
   const guess = $("#input-guess").value.trim();
   if (guess.length !== currentDigitLength || !/^\d+$/.test(guess)) {
     showToast(`Enter exactly ${currentDigitLength} digits.`);
+    sfxError();
+    $(".input-row").classList.add("shake");
+    setTimeout(() => $(".input-row").classList.remove("shake"), 400);
+    return;
+  }
+  if (hasDuplicateDigits(guess)) {
+    showToast("No repeated digits allowed.");
     sfxError();
     $(".input-row").classList.add("shake");
     setTimeout(() => $(".input-row").classList.remove("shake"), 400);
@@ -618,6 +664,7 @@ socket.on("game-over", ({ winnerName, youWon, yourSecret, opponentSecret, yourGu
   $("#btn-rematch").classList.remove("hidden");
   $("#rematch-waiting").classList.add("hidden");
   showScreen("gameover");
+  loadNotes();
 });
 
 // ── Rematch ─────────────────────────────────────────────────────────────────
@@ -711,6 +758,7 @@ socket.on("rejoin-state", (state) => {
     stopClientTimer();
     $("#turn-timer").classList.add("hidden");
     showScreen("gameover");
+    loadNotes();
   }
 });
 
